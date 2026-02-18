@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard - StopNova</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body { font-family:Poppins,sans-serif; background:#06141f; color:white; padding:20px; }
+h1 { text-align:center; color:#00c896; margin-bottom:20px; }
+.stats-card { background: rgba(255,255,255,0.05); padding:20px; margin:15px auto; border-radius:18px; max-width:800px; box-shadow:0 0 25px rgba(0,0,0,0.4); }
+table { width:100%; border-collapse: collapse; }
+th, td { padding:10px; text-align:left; border-bottom:1px solid rgba(0,200,150,0.2); }
+button { padding:5px 10px; border-radius:5px; border:none; cursor:pointer; background:linear-gradient(45deg,#00c896,#00a67d); color:white; margin:2px; }
+button i { margin-right:2px; }
+#activityFeedAdmin { max-height:300px; overflow-y:auto; border:1px solid #00c896; padding:5px; border-radius:10px; background: rgba(0,200,150,0.05); }
+form input, form textarea { width:100%; padding:8px; margin:5px 0; border-radius:5px; border:none; }
+form button { width:100%; margin-top:5px; }
+@media screen and (max-width:600px){
+    .stats-card { width:95%; }
+}
+</style>
+</head>
+<body>
+
+<h1><i class="fas fa-crown"></i> StepNova Admin</h1>
+
+<!-- UTILISATEURS -->
+<div class="stats-card">
+    <h2><i class="fas fa-users"></i> Utilisateurs</h2>
+    <table>
+        <thead>
+            <tr><th>Utilisateur</th><th>Solde ($)</th><th>Pas total</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="usersTable"></tbody>
+    </table>
+</div>
+
+<!-- AJOUT / RETRAIT SOLDE -->
+<div class="stats-card">
+    <h2><i class="fas fa-wallet"></i> Ajouter / Retirer Solde</h2>
+    <p>Cliquer sur "+" ou "-" dans le tableau pour modifier le solde d'un utilisateur.</p>
+</div>
+
+<!-- CREER CHALLENGE -->
+<div class="stats-card">
+    <h2><i class="fas fa-trophy"></i> Créer Challenge</h2>
+    <form id="challengeForm">
+        <input type="text" name="title" placeholder="Titre du challenge" required>
+        <textarea name="description" placeholder="Description" required></textarea>
+        <input type="number" name="reward" placeholder="Récompense ($)" required step="0.01">
+        <button type="submit"><i class="fas fa-plus"></i> Publier Challenge</button>
+    </form>
+</div>
+
+<!-- FEED ADMIN -->
+<div class="stats-card">
+    <h2><i class="fas fa-list"></i> Activités Récentes</h2>
+    <ul id="activityFeedAdmin"></ul>
+</div>
+
+<script type="module" src="admin.js"></script>
+
+</body>
+</html>

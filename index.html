@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StepNova - Move & Earn</title>
+
+<!-- FONTS & ICONS -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<!-- CHART.JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { margin:0; font-family:'Poppins', sans-serif; background:#06141f; color:white; overflow-x:hidden;}
+a { text-decoration:none; color:inherit; }
+h1,h2,h3,h4,h5 { margin:0; }
+section { padding:60px 20px; max-width:1200px; margin:auto; }
+.fade { opacity:0; transform:translateY(20px); animation:fadeInUp 1s forwards; }
+
+/* LOADER */
+#loader{ position:fixed; top:0; left:0; width:100%; height:100%; background:#06141f; display:flex; justify-content:center; align-items:center; font-size:2rem; color:#00c896; z-index:9999; }
+
+/* HERO */
+.hero { display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; min-height:80vh; background:linear-gradient(180deg, #06141f 0%, #0a1b2f 100%); }
+.hero h1 { font-size:3rem; color:#00c896; margin-bottom:20px; animation:fadeInDown 1s forwards; }
+.hero p { font-size:1.5rem; margin-bottom:30px; color:#a0f0c8; animation:fadeInUp 1s 0.5s forwards; }
+.btn-primary { background:linear-gradient(45deg,#00c896,#00f0b0); color:#000; font-weight:bold; padding:15px 30px; border-radius:12px; display:inline-flex; align-items:center; gap:10px; transition:all 0.3s; }
+.btn-primary:hover { transform:scale(1.05); box-shadow:0 0 20px #00c896; }
+
+/* STATS CARDS */
+.stats { display:flex; justify-content:space-around; flex-wrap:wrap; gap:20px; margin-top:40px; }
+.stat-card { flex:1 1 200px; background:rgba(255,255,255,0.05); border-radius:15px; padding:30px 20px; text-align:center; box-shadow:0 0 20px rgba(0,200,150,0.2); transition:transform 0.3s; }
+.stat-card:hover { transform:translateY(-5px); box-shadow:0 0 25px #00c896; }
+.stat-icon { font-size:2.5rem; margin-bottom:15px; color:#00c896; }
+.counter { font-size:2rem; color:#00f0b0; margin-bottom:10px; }
+
+/* FEATURES */
+.feature { background:rgba(255,255,255,0.05); border-radius:12px; padding:20px; margin:15px 0; display:flex; align-items:center; gap:15px; box-shadow:0 0 15px rgba(0,200,150,0.2); transition:all 0.3s; }
+.feature i { font-size:1.8rem; color:#00c896; }
+.feature:hover { transform:translateX(5px); box-shadow:0 0 20px #00f0b0; }
+
+/* COMMUNITY */
+.community { text-align:center; }
+.community p { color:#a0f0c8; margin-top:10px; }
+.feed { max-height:300px; overflow-y:auto; background:rgba(255,255,255,0.05); border-radius:15px; padding:15px; margin-top:20px; box-shadow:0 0 15px rgba(0,200,150,0.2); }
+
+/* FOOTER NAV */
+.mobile-nav { position:fixed; bottom:0; left:0; width:100%; background:#0a1b2f; display:flex; justify-content:space-around; padding:10px 0; border-top:1px solid #00c896; z-index:100; }
+.mobile-nav a { display:flex; flex-direction:column; align-items:center; font-size:0.8rem; color:#00c896; transition:all 0.2s; }
+.mobile-nav a:hover { color:#00f0b0; transform:scale(1.1); }
+.mobile-nav i { font-size:1.3rem; }
+
+/* ANIMATIONS */
+@keyframes fadeInUp { to {opacity:1; transform:translateY(0);} }
+@keyframes fadeInDown { to {opacity:1; transform:translateY(0);} }
+
+/* RESPONSIVE */
+@media screen and (max-width:768px){ .stats { flex-direction:column; align-items:center; } section { padding:40px 15px; } }
+</style>
+</head>
+
+<body>
+
+<div id="loader">StepNova</div>
+
+<!-- HERO -->
+<section class="hero fade">
+<h1>StepNova</h1>
+<p>Transformez vos pas en revenus réels</p>
+<a href="register.html" class="btn-primary">
+<i class="fa-solid fa-rocket"></i> Commencer
+</a>
+</section>
+
+<!-- STATS -->
+<section class="stats fade">
+<div class="stat-card">
+<i class="fa-solid fa-shoe-prints stat-icon"></i>
+<h3 class="counter" id="totalSteps">0</h3>
+<p>Pas enregistrés</p>
+</div>
+<div class="stat-card">
+<i class="fa-solid fa-users stat-icon"></i>
+<h3 class="counter" id="totalUsers">0</h3>
+<p>Utilisateurs</p>
+</div>
+<div class="stat-card">
+<i class="fa-solid fa-coins stat-icon"></i>
+<h3 class="counter" id="totalGains">0</h3>
+<p>Gains distribués</p>
+</div>
+</section>
+
+<!-- FONCTIONNALITES -->
+<section class="section fade">
+<h2><i class="fa-solid fa-bolt"></i> Fonctionnalités</h2>
+<div class="feature">
+<i class="fa-solid fa-route"></i> 🚶‍♂️ Suivi de vos pas
+</div>
+<div class="feature">
+<i class="fa-solid fa-money-bill-wave"></i> 💰 Gains en temps réel
+</div>
+<div class="feature">
+<i class="fa-solid fa-trophy"></i> 🏆 Challenges communautaires
+</div>
+<div class="feature">
+<i class="fa-solid fa-chart-line"></i> 📊 Statistiques personnelles
+</div>
+</section>
+
+<!-- COMMUNAUTE -->
+<section class="community fade">
+<h2><i class="fa-solid fa-globe"></i> Rejoignez la communauté</h2>
+<p>Des milliers d’utilisateurs marchent déjà avec nous.</p>
+<div class="feed" id="communityFeed"></div>
+</section>
+
+<!-- FOOTER NAV -->
+<footer class="mobile-nav">
+<a href="index.html"><i class="fa-solid fa-house"></i><span>Accueil</span></a>
+<a href="stats.html"><i class="fa-solid fa-chart-line"></i><span>Stats</span></a>
+<a href="dashboard.html"><i class="fa-solid fa-shoe-prints"></i><span>Mes pas</span></a>
+<a href="community.html"><i class="fa-solid fa-users"></i><span>Communauté</span></a>
+<a href="login.html"><i class="fa-solid fa-user"></i><span>Compte</span></a>
+</footer>
+
+<script type="module">
+// ===================== FIREBASE =====================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "TON_API_KEY",
+  authDomain: "TON_AUTH_DOMAIN",
+  projectId: "TON_PROJECT_ID",
+  storageBucket: "TON_STORAGE_BUCKET",
+  messagingSenderId: "TON_MESSAGING_ID",
+  appId: "TON_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ===================== LOADER =====================
+window.addEventListener('load',()=>{document.getElementById('loader').style.display='none';});
+
+// ===================== STATS DYNAMIQUES =====================
+async function updateStats(){
+    const usersSnap = await getDocs(collection(db,"users"));
+    let steps=0, users=0, gains=0;
+    usersSnap.forEach(doc=>{
+        const data = doc.data();
+        steps += data.totalSteps || 0;
+        gains += data.balance || 0;
+        users++;
+    });
+    animateCounter("totalSteps", steps);
+    animateCounter("totalUsers", users);
+    animateCounter("totalGains", gains.toFixed(2));
+}
+function animateCounter(id, target){
+    const el = document.getElementById(id);
+    let count = 0;
+    const step = target/100;
+    const interval = setInterval(()=>{
+        count += step;
+        if(count>=target){ el.innerText = target; clearInterval(interval); }
+        else el.innerText = Math.ceil(count);
+    },20);
+}
+updateStats();
+
+// ===================== FEED COMMUNAUTAIRE LIVE =====================
+const feedEl = document.getElementById("communityFeed");
+const feedQuery = query(collection(db,"activities"), orderBy("createdAt","desc"), limit(20));
+onSnapshot(feedQuery,(snapshot)=>{
+    feedEl.innerHTML="";
+    snapshot.forEach(docSnap=>{
+        const data = docSnap.data();
+        const time = data.createdAt?.seconds ? new Date(data.createdAt.seconds*1000).toLocaleTimeString() : "";
+        const p = document.createElement("p");
+        p.innerHTML = `<strong>${data.username || "Invité"}</strong> [${time}]: ${data.message}`;
+        feedEl.appendChild(p);
+    });
+});
+</script>
+
+</body>
+</html>

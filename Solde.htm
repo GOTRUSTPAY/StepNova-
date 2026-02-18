@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StepNova CMT Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body { font-family:Poppins,sans-serif; background:#06141f; color:white; text-align:center; padding:20px 0;}
+h1 { margin-top:20px; font-size:32px; color:#00c896; display:flex; align-items:center; justify-content:center; gap:10px;}
+.stats-card, .balance-card, .points-card, .profile-card, .activity-feed, .history-card, .challenge-card, .community-section, .users-table-card { 
+    background: rgba(255,255,255,0.05); padding: 20px; margin: 15px auto; border-radius: 18px; max-width: 400px; box-shadow:0 0 25px rgba(0,0,0,0.4);
+}
+button { padding:10px 20px; border-radius:10px; border:none; cursor:pointer; margin:5px; background: linear-gradient(45deg,#00c896,#00a67d); color:white; font-weight:bold; transition: transform 0.2s, box-shadow 0.2s; }
+button:hover { transform: scale(1.05); box-shadow:0 0 10px #00c896; }
+.profile-card img, h1 img { border-radius:50%; }
+.activity-feed ul, .community-section ul, .community-section ol, .users-table-card table { list-style:none; padding:0; max-height:200px; overflow-y:auto; width:100%; color:white;}
+.activity-feed li, .community-section li, .users-table-card tr { padding:5px 0; opacity:0; transition:opacity 0.5s;}
+.badges img { width:40px; margin:5px; }
+canvas { width:100%; }
+.challenge-card div { background: rgba(255,255,255,0.05); padding: 10px; border-radius:10px; margin-bottom:10px; box-shadow:0 0 10px rgba(0,200,150,0.2);}
+.community-section { color:#00c896; }
+.community-section h2 { font-size:20px; margin-bottom:10px;}
+.community-section li{ border-bottom:1px solid rgba(0,200,150,0.2); padding:8px 0;}
+.users-table-card table { border-collapse: collapse; }
+.users-table-card th, .users-table-card td { border:1px solid rgba(0,200,150,0.3); padding:5px; font-size:14px; }
+@media screen and (max-width:450px){ 
+.stats-card, .balance-card, .points-card, .profile-card, .activity-feed, .history-card, .challenge-card, .community-section, .users-table-card { width:90%; padding:15px; } 
+button { padding:8px 15px; font-size:14px; }
+}
+</style>
+</head>
+<body>
+
+<h1><img src="A_digital_vector_logo_design_for_StepNova_features.png" alt="StepNova" width="50"> StepNova</h1>
+
+<!-- STATISTIQUES -->
+<div class="stats-card">
+<h2><i class="fas fa-chart-line"></i> Statistiques activité</h2>
+<p>Status : <span id="status">Stop</span></p>
+<p>Pas : <span id="steps">0</span></p>
+<p>Distance : <span id="distance">0</span> km</p>
+<p>Gains : $<span id="gains">0</span></p>
+<button onclick="startTracking()"><i class="fas fa-play"></i> START</button>
+<button onclick="stopTracking()"><i class="fas fa-stop"></i> STOP</button>
+</div>
+
+<!-- SOLDE -->
+<div class="balance-card">
+<h2><i class="fas fa-coins"></i> Solde utilisateur</h2>
+<p>Gains total : $<span id="totalBalance">0</span></p>
+<p>Gains aujourd'hui : $<span id="todayBalance">0</span></p>
+<button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Déconnexion</button>
+</div>
+
+<!-- POINTS CUMULÉS -->
+<div class="points-card">
+<h2><i class="fas fa-gem"></i> Points cumulés</h2>
+<p>Total : <span id="points">0</span> grains</p>
+</div>
+
+<!-- PROFIL -->
+<div class="profile-card">
+<img id="userAvatar" src="" alt="Avatar" width="80">
+<p>ID: <span id="userId"></span></p>
+<p>Email: <span id="userEmail"></span></p>
+<div class="badges" id="badges"></div>
+</div>
+
+<!-- ACTIVITÉS RÉCENTES -->
+<div class="activity-feed">
+<h2><i class="fas fa-list"></i> Activités récentes</h2>
+<ul id="activityList"></ul>
+</div>
+
+<!-- CHALLENGES -->
+<div class="challenge-card">
+<h2><i class="fas fa-trophy"></i> Challenges</h2>
+<ul id="challengeList"></ul>
+</div>
+
+<!-- GRAPH HISTORIQUE -->
+<div class="history-card">
+<h2><i class="fas fa-chart-area"></i> Historique Pas / Gains</h2>
+<canvas id="historyChart"></canvas>
+</div>
+
+<!-- SESSIONS -->
+<div class="history-card">
+<h2>Historique sessions</h2>
+<ul id="sessionHistory"></ul>
+</div>
+
+<!-- COMMUNAUTÉ -->
+<div class="community-section">
+<h2>Activités récentes (Communauté)</h2>
+<ul id="recentActivities"></ul>
+<h2>Classement Top 5</h2>
+<ol id="leaderboard"></ol>
+<h2>Challenges en cours</h2>
+<div id="challengesList"></div>
+</div>
+
+<!-- TABLEAU SOLDE -->
+<div class="users-table-card">
+<h2>Tableau Solde Utilisateurs</h2>
+<table>
+<thead>
+<tr><th>Nom</th><th>Email</th><th>Total Pas</th><th>Solde</th><th>Gains aujourd'hui</th></tr>
+</thead>
+<tbody id="usersTable"></tbody>
+</table>
+</div>
+
+<script type="module">
+// ===================== FIREBASE =====================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, addDoc, updateDoc, query, where, getDocs, orderBy, limit, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyCwzUODVlb3EdiWqZ4t2X-lWg2TXyeyW4Q",
+authDomain: "stepnova-1426b.firebaseapp.com",
+projectId: "stepnova-1426b",
+storageBucket: "stepnova-1426b.appspot.com",
+messagingSenderId: "835775629094",
+appId: "1:835775629094:web:8499cbcd43466bb1e9e3e7"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ===================== UTILISATEUR =====================
+let uid = localStorage.getItem("currentUser") || null;
+
+async function loadProfile(){
+    if(!uid) return;
+    const userRef = doc(db,"users",uid);
+    const snap = await getDoc(userRef);
+    if(!snap.exists()) return;
+    const data = snap.data();
+    document.getElementById("userAvatar").src = data.avatar || 'default-avatar.png';
+    document.getElementById("userId").innerText = uid;
+    document.getElementById("userEmail").innerText = data.email;
+    document.getElementById("totalBalance").innerText = (data.balance || 0).toFixed(2);
+    document.getElementById("todayBalance").innerText = (((data.todaySteps || 0)/1000)*0.01).toFixed(4);
+    updateBadges(data.totalSteps || 0);
+}
+loadProfile();
+
+window.logout = function(){
+    if(!uid) return;
+    signOut(auth).then(()=> { alert("Déconnecté"); window.location="index.html"; });
+}
+
+// ===================== BADGES =====================
+function updateBadges(totalSteps){
+    const badgesEl = document.getElementById("badges");
+    badgesEl.innerHTML="";
+    if(totalSteps>=100) badgesEl.innerHTML+='<img src="badge1.png" alt="Débutant">';
+    if(totalSteps>=1000) badgesEl.innerHTML+='<img src="badge2.png" alt="Explorateur">';
+    if(totalSteps>=10000) badgesEl.innerHTML+='<img src="badge3.png" alt="Pro">';
+}
+
+// ===================== ACTIVITÉS =====================
+async function addActivity(message,color='green'){
+    const ul = document.getElementById("activityList");
+    const li = document.createElement("li");
+    li.innerText = message;
+    li.style.color=color;
+    ul.prepend(li);
+    setTimeout(()=> li.style.opacity = 1,50);
+    if(ul.children.length > 20) ul.removeChild(ul.lastChild);
+    try{
+        let username = "Invité";
+        if(uid){
+            const userRef = doc(db,"users",uid);
+            const snap = await getDoc(userRef);
+            if(snap.exists()) username = snap.data().username || "Utilisateur";
+        }
+        await addDoc(collection(db,"activities"),{ message, createdAt:serverTimestamp(), userId:uid||"guest", username });
+    }catch(e){console.error("Erreur sauvegarde activité",e);}
+}
+
+// ===================== FEED COMMUNAUTAIRE =====================
+function listenRecentActivities(){
+    const activitiesRef = collection(db,"activities");
+    const q = query(activitiesRef, orderBy("createdAt","desc"), limit(20));
+    onSnapshot(q,(snapshot)=>{
+        const listEl = document.getElementById("recentActivities");
+        listEl.innerHTML="";
+        snapshot.forEach(docSnap=>{
+            const data = docSnap.data();
+            const timestamp = data.createdAt?.seconds ? new Date(data.createdAt.seconds*1000).toLocaleTimeString() : "";
+            const li = document.createElement("li");
+            li.innerHTML = `<strong>${data.username||"Invité"}</strong> [${timestamp}]: ${data.message}`;
+            listEl.appendChild(li);
+        });
+        updateGlobalChart();
+    });
+}
+listenRecentActivities();
+
+// ===================== COMPTEUR PAS =====================
+let steps=0, isTracking=false, lastAcceleration=0, stepThreshold=12, sessionStart=null, lastStepTime=0, minStepInterval=300, maxStepAcc=30;
+
+window.startTracking=function(){
+    if(isTracking) return;
+    steps=0; isTracking=true; sessionStart=new Date();
+    document.getElementById("status").innerText="Actif";
+    addActivity("Suivi démarré","blue");
+    if(DeviceMotionEvent && DeviceMotionEvent.requestPermission){
+        DeviceMotionEvent.requestPermission().then(resp=>{ if(resp==='granted') window.addEventListener('devicemotion',handleMotion); else alert("Permission mouvement refusée"); });
+    } else window.addEventListener('devicemotion',handleMotion);
+}
+
+window.stopTracking=function(){
+    if(!isTracking) return;
+    isTracking=false; window.removeEventListener("devicemotion",handleMotion);
+    document.getElementById("status").innerText="Stop";
+    addActivity("Suivi arrêté","orange");
+    saveSession();
+}
+
+function handleMotion(event){
+    let acc=event.accelerationIncludingGravity; if(!acc) return;
+    let totalAcc=Math.sqrt(acc.x*acc.x+acc.y*acc.y+acc.z*acc.z);
+    let delta=Math.abs(totalAcc-lastAcceleration);
+    let now=Date.now();
+    if(delta>maxStepAcc || delta<stepThreshold || now-lastStepTime<minStepInterval) return;
+    steps++; lastStepTime=now; lastAcceleration=totalAcc;
+    updateUI();
+}
+
+// ===================== UI & GRAPH =====================
+const ctx=document.getElementById('historyChart').getContext('2d');
+const historyChart=new Chart(ctx,{type:'line',data:{labels:[], datasets:[{label:'Gains ($)', data:[], borderColor:'rgba(75,192,192,1)', backgroundColor:'rgba(75,192,192,0.2)', fill:true, tension:0.3}]}, options:{responsive:true, animation:{duration:200}, plugins:{legend:{display:true, position:'top'}}, scales:{y:{beginAtZero:true}}}});
+
+function updateUI(){
+    document.getElementById("steps").innerText=steps;
+    let distance=steps*0.75/1000;
+    document.getElementById("distance").innerText=distance.toFixed(2);
+    let gains=(steps/1000)*0.01;
+    document.getElementById("gains").innerText=gains.toFixed(4);
+    document.getElementById("points").innerText=(steps*0.01).toFixed(2);
+    const now=new Date().toLocaleTimeString();
+    historyChart.data.labels.push(now); historyChart.data.datasets[0].data.push(gains.toFixed(4));
+    if(historyChart.data.labels.length>20){ historyChart.data.labels.shift(); historyChart.data.datasets[0].data.shift(); }
+    historyChart.update();
+    addActivity(`Utilisateur a fait un pas. Total: ${steps}`,"green");
+}
+
+// ===================== SAVE SESSION =====================
+async function saveSession(){
+    if(!uid) return;
+    const userRef=doc(db,"users",uid);
+    const snap=await getDoc(userRef); if(!snap.exists()) return;
+    const data=snap.data();
+    let distance=steps*0.75/1000;
+    let gains=(steps/1000)*0.01;
+    await addDoc(collection(db,"sessions"),{ userId:uid, steps, distance, gains, start:sessionStart, end:new Date() });
+    await updateDoc(userRef,{ balance:(data.balance||0)+gains, totalSteps:(data.totalSteps||0)+steps, todaySteps:(data.todaySteps||0)+steps });
+    updateGlobalChart(); loadProfile(); loadSessionsHistory();
+}
+
+// ===================== SESSIONS =====================
+async function loadSessionsHistory(){
+    if(!uid) return;
+    const sessionsRef=collection(db,"sessions");
+    const q=query(sessionsRef, where("userId","==",uid), orderBy("end","desc"));
+    const snapshot=await getDocs(q);
+    const historyEl=document.getElementById("sessionHistory"); historyEl.innerHTML="";
+    snapshot.forEach(docSnap=>{
+        const data=docSnap.data();
+        const start=new Date(data.start.seconds*1000).toLocaleString();
+        const end=new Date(data.end.seconds*1000).toLocaleString();
+        const li=document.createElement("li");
+        li.innerHTML=`<strong>${start} → ${end}</strong><br>Pas: ${data.steps} | Gains: $${data.gains.toFixed(4)} | Distance: ${data.distance.toFixed(2)} km`;
+        historyEl.appendChild(li);
+    });
+}
+
+// ===================== LEADERBOARD =====================
+async function loadLeaderboard(){
+    const q=query(collection(db,"users"), orderBy("balance","desc"), limit(5));
+    const leaderboardEl=document.getElementById("leaderboard"); leaderboardEl.innerHTML="";
+    const snapshot=await getDocs(q);
+    snapshot.forEach(docSnap=>{
+        const data=docSnap.data();
+        const li=document.createElement("li"); li.innerText=`${data.username||docSnap.id} - $${(data.balance||0).toFixed(2)}`; leaderboardEl.appendChild(li);
+    });
+}
+loadLeaderboard();
+
+// ===================== CHALLENGES =====================
+async function loadChallenges(){
+    const snapshot=await getDocs(collection(db,"challenges"));
+    const el=document.getElementById("challengesList"); el.innerHTML="";
+    const listEl=document.getElementById("challengeList"); listEl.innerHTML="";
+    snapshot.forEach(docSnap=>{
+        const data=docSnap.data();
+        const div=document.createElement("div"); div.classList.add("challenge-card");
+        div.innerHTML=`<h4>${data.title}</h4><p>${data.description}</p><p>Récompense: $${data.reward}</p><p>Participants: ${data.participants?.length || 0}</p>`;
+        el.appendChild(div);
+        const li=document.createElement("li"); li.innerText=`${data.title} - $${data.reward}`; listEl.appendChild(li);
+    });
+}
+loadChallenges();
+
+// ===================== TABLEAU SOLDE =====================
+async function updateGlobalChart(){
+    const snapshot=await getDocs(collection(db,"users"));
+    const tbody=document.getElementById("usersTable"); tbody.innerHTML="";
+    let labels=[], data=[];
+    snapshot.forEach(docSnap=>{
+        const user=docSnap.data();
+        labels.push(user.username||docSnap.id);
+        data.push((user.balance||0).toFixed(2));
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${user.username||docSnap.id}</td><td>${user.email||"-"}</td><td>${user.totalSteps||0}</td><td>${(user.balance||0).toFixed(4)}</td><td>${((user.todaySteps||0)/1000*0.01).toFixed(4)}</td>`;
+        tbody.appendChild(tr);
+    });
+    // Chart global si besoin
+}
+updateGlobalChart();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+import { register } from "./auth.js";
+
+// Attendre chargement page
+document.getElementById("btnRegister").addEventListener("click", async () => {
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if(!email || !password){
+        alert("Merci de remplir tous les champs");
+        return;
+    }
+
+    try {
+
+        await register();
+
+        alert("Votre compte a été créé avec succès !");
+        window.location.href = "dashboard.html";
+
+    } catch(error){
+        alert(error.message);
+    }
+
+});

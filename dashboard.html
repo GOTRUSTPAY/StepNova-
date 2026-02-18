@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - StepNova</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+body{margin:0; padding:0; font-family:Poppins,sans-serif; background:#06141f; color:white;}
+h1,h2,h3{color:#00c896;}
+.stats-card, .balance-card, .points-card, .profile-card, .activity-feed, .history-card, .challenge-card, .community-section{background:rgba(255,255,255,0.05); padding:20px; margin:15px auto; border-radius:18px; max-width:450px; box-shadow:0 0 25px rgba(0,0,0,0.4);}
+button{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;margin:5px;background:linear-gradient(45deg,#00c896,#00a67d);color:white;font-weight:bold;transition: transform 0.2s, box-shadow 0.2s;}
+button:hover{transform:scale(1.05); box-shadow:0 0 10px #00c896;}
+.profile-card img{border-radius:50%; margin-bottom:10px;}
+.activity-feed ul, .community-section ul, .community-section ol{list-style:none;padding:0; max-height:200px; overflow-y:auto;}
+.activity-feed li, .community-section li{padding:5px 0; opacity:0; transition: opacity 0.5s;}
+.badges img{width:40px; margin:5px;}
+canvas{width:100%;}
+.challenge-card div{background:rgba(255,255,255,0.05); padding:10px; border-radius:10px; margin-bottom:10px; box-shadow:0 0 10px rgba(0,200,150,0.2);}
+.community-section{color:#00c896;}
+.community-section h2{font-size:20px;margin-bottom:10px;}
+.community-section li{border-bottom:1px solid rgba(0,200,150,0.2); padding:8px 0;}
+@media screen and (max-width:450px){.stats-card, .balance-card, .points-card, .profile-card, .activity-feed, .history-card, .challenge-card, .community-section{width:90%; padding:15px;} button{padding:8px 15px; font-size:14px;}}
+</style>
+</head>
+<body>
+
+<h1><i class="fas fa-walking"></i> StepNova Dashboard</h1>
+
+<!-- STATISTIQUES -->
+<div class="stats-card">
+<h2><i class="fas fa-chart-line"></i> Statistiques activité</h2>
+<p>Status : <span id="status">Stop</span></p>
+<p>Pas : <span id="steps">0</span></p>
+<p>Distance : <span id="distance">0</span> km</p>
+<p>Gains : $<span id="gains">0</span></p>
+<button id="startBtn"><i class="fas fa-play"></i> START</button>
+<button id="stopBtn"><i class="fas fa-stop"></i> STOP</button>
+</div>
+
+<!-- SOLDE -->
+<div class="balance-card">
+<h2><i class="fas fa-coins"></i> Solde utilisateur</h2>
+<p>Gains total : $<span id="totalBalance">0</span></p>
+<p>Gains aujourd'hui : $<span id="todayBalance">0</span></p>
+</div>
+
+<!-- POINTS & BADGES -->
+<div class="points-card">
+<h2><i class="fas fa-gem"></i> Points cumulés</h2>
+<p>Total : <span id="points">0</span> grains</p>
+<div class="badges" id="badges"></div>
+</div>
+
+<!-- PROFIL -->
+<div class="profile-card">
+<img id="userAvatar" src="" alt="Avatar" width="80">
+<p>ID: <span id="userId">U001</span></p>
+<p>Email: <span id="userEmail">user@example.com</span></p>
+</div>
+
+<!-- ACTIVITÉS RÉCENTES -->
+<div class="activity-feed">
+<h2><i class="fas fa-list"></i> Activités récentes</h2>
+<ul id="activityList"></ul>
+</div>
+
+<!-- HISTORIQUE SESSIONS -->
+<div class="history-card">
+<h2><i class="fas fa-chart-area"></i> Historique Pas / Gains</h2>
+<canvas id="historyChart"></canvas>
+</div>
+
+<!-- CHALLENGES -->
+<div class="challenge-card">
+<h2><i class="fas fa-trophy"></i> Challenges</h2>
+<div id="challengeList"></div>
+</div>
+
+<!-- COMMUNAUTÉ -->
+<div class="community-section">
+<h2>Activités récentes (Communauté)</h2>
+<ul id="recentActivities"></ul>
+
+<h2>Classement Top 5</h2>
+<ol id="leaderboard"></ol>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+/* ===================== LOGIQUE DE PAS ===================== */
+let steps = 0;
+let isTracking = false;
+let lastStepTime = 0;
+const minStepInterval = 300;
+let lastAcceleration = 0;
+const stepThreshold = 10;
+const maxAcceleration = 35;
+
+const stepsEl = document.getElementById("steps");
+const distanceEl = document.getElementById("distance");
+const gainsEl = document.getElementById("gains");
+const pointsEl = document.getElementById("points");
+const statusEl = document.getElementById("status");
+
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+
+startBtn.onclick = async () => {
+
+    isTracking = true;
+    statusEl.innerText = "Actif";
+    addActivity("Suivi démarré","blue");
+
+    if(typeof DeviceMotionEvent !== "undefined"
+    && typeof DeviceMotionEvent.requestPermission === "function"){
+
+        const permission = await DeviceMotionEvent.requestPermission();
+        if(permission === "granted"){
+            window.addEventListener("devicemotion", handleMotion);
+        }
+
+    } else {
+        window.addEventListener("devicemotion", handleMotion);
+    }
+};
+
+function handleMotion(event){
+
+    if(!isTracking) return;
+
+    const acc = event.accelerationIncludingGravity;
+    if(!acc) return;
+
+    const totalAcc = Math.sqrt(
+        acc.x*acc.x +
+        acc.y*acc.y +
+        acc.z*acc.z
+    );
+
+    const delta = Math.abs(totalAcc - lastAcceleration);
+    const now = Date.now();
+
+    if(delta < stepThreshold) return;
+    if(delta > maxAcceleration) return;
+    if(now - lastStepTime < minStepInterval) return;
+
+    steps++;
+    lastStepTime = now;
+    lastAcceleration = totalAcc;
+
+    updateUI();
+}
+
+/* ===================== UI ===================== */
+function updateUI(){
+    stepsEl.innerText = steps;
+    let distance = steps*0.75/1000;
+    distanceEl.innerText = distance.toFixed(2);
+    let gains = (steps/1000)*0.01;
+    gainsEl.innerText = gains.toFixed(4);
+    pointsEl.innerText = (steps*0.01).toFixed(2);
+    addActivity(`Utilisateur a fait un pas. Total: ${steps}`,"green");
+}
+
+/* ===================== ACTIVITÉS RÉCENTES ANIMÉES ===================== */
+const activityList = document.getElementById("activityList");
+const recentActivities = document.getElementById("recentActivities");
+const randomUsers = ["Alice","Bob","Charlie","David","Eva","Fiona","George"];
+
+function addActivity(message,color='white'){
+    const li = document.createElement("li");
+    li.innerText = message;
+    li.style.color = color;
+    li.style.opacity=0;
+    activityList.prepend(li);
+    recentActivities.prepend(li.cloneNode(true));
+    setTimeout(()=>li.style.opacity=1,50);
+    if(activityList.children.length>10) activityList.removeChild(activityList.lastChild);
+    if(recentActivities.children.length>10) recentActivities.removeChild(recentActivities.lastChild);
+}
+
+/* ===================== SIMULATION AUTOMATIQUE ===================== */
+setInterval(()=>{
+  
+    if(Math.random()<0.3){
+    // Ajouter activité aléatoire
+        const user = randomUsers[Math.floor(Math.random()*randomUsers.length)];
+        addActivity(`${user} a fait un pas!`,"#00c896");
+    }
+}, 1000);
+
+/* ===================== CHART ===================== */
+const ctx = document.getElementById('historyChart').getContext('2d');
+const historyChart = new Chart(ctx,{
+    type:'line',
+    data:{ labels: [], datasets:[{ label:'Gains ($)', data:[], borderColor:'rgba(75,192,192,1)', backgroundColor:'rgba(75,192,192,0.2)', fill:true, tension:0.3 }] },
+    options:{ responsive:true, animation:{duration:200}, plugins:{legend:{display:true, position:'top'}}, scales:{y:{beginAtZero:true}} }
+});
+
+setInterval(()=>{
+    const now = new Date().toLocaleTimeString();
+    const gains = (steps/1000)*0.01;
+    historyChart.data.labels.push(now);
+    historyChart.data.datasets[0].data.push(gains.toFixed(4));
+    if(historyChart.data.labels.length>20){
+        historyChart.data.labels.shift();
+        historyChart.data.datasets[0].data.shift();
+    }
+    historyChart.update();
+},2000);
+
+/* ===================== CHALLENGES ===================== */
+const challengeList = document.getElementById("challengeList");
+const challenges = [
+    {title:"Marcher 2 km aujourd'hui",description:"Faites au moins 2 km aujourd'hui",reward:"0.02"},
+    {title:"5000 pas cette semaine",description:"Atteignez 5000 pas",reward:"0.05"}
+];
+challenges.forEach(c=>{
+    const div = document.createElement("div");
+    div.innerHTML=`<h4>${c.title}</h4><p>${c.description}</p><p>Récompense: $${c.reward}</p>`;
+    challengeList.appendChild(div);
+});
+
+/* ===================== LEADERBOARD ===================== */
+const leaderboardEl = document.getElementById("leaderboard");
+const leaderboardData = [
+    {username:"Alice",balance:0.12},
+    {username:"Bob",balance:0.08},
+    {username:"Charlie",balance:0.05},
+    {username:"David",balance:0.03},
+    {username:"Eva",balance:0.01}
+];
+leaderboardData.forEach(u=>{
+    const li=document.createElement("li");
+    li.innerHTML=`<i class="fa-solid fa-user"></i> ${u.username} - $${u.balance.toFixed(2)}`;
+    leaderboardEl.appendChild(li);
+});
+
+</script>
+</body>
+</html>
