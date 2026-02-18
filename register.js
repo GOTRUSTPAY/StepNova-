@@ -1,17 +1,15 @@
 import { registerUser } from "./auth.js";
 
-const btn = document.getElementById("btnRegister");
+document.getElementById("btnRegister").addEventListener("click", async () => {
 
-btn.addEventListener("click", async () => {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
 
     try {
         await registerUser(email, password);
-        alert("✅ Votre compte a été créé avec succès !");
+        alert("Compte créé !");
         window.location.href = "dashboard.html";
     } catch(error) {
-        alert("❌ Erreur : " + error.message);
-        console.error(error);
+        alert(error.message);
     }
 });
